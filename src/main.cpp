@@ -18,7 +18,13 @@ int main()
 	}
 	Game* game = Game::get();
 
-	std::string command;
+	std::string command = "start";
+
+	game->step(command);
+	screen->clear();
+	screen->draw_game(game->get_drawable_data());
+	screen->display();
+
 	while(true) // <----- game mainloop
 	{
 		do { // <----- try do step

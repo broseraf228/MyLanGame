@@ -26,9 +26,9 @@ void console_size(int& size_x, int& size_y)
 std::map<char, std::string> Screen::cheeses_textures
 {
     {' ', "  "},
-    {'8', ".."},
-    {'9', "[]"},
-    {'p', "P "},
+    {'8', "  "},
+    {'9', "::"},
+    {'p', " P"},
 };
 
 Screen* Screen::_self = nullptr;
@@ -69,12 +69,21 @@ void Screen::draw(const std::string& str) {
 }
 void Screen::draw_game(const geme_drawable_data& data)
 {
-    for (auto& item : data.map) {
-        for (auto ch : item) {
+    buffer += "~~ ";
+    for (int i = 0; i < data.map[0].size(); i++)
+        buffer += std::to_string(i + 1) + ' ';
+    buffer += " ~~";
+    buffer += '\n';
+
+    for (int i = 0; i < data.map.size(); i++) {
+        buffer += std::to_string(i + 1) + "  ";
+        for (auto ch : data.map[i]) {
             buffer += cheeses_textures[ch];
         }
+        buffer += "  |";
         buffer += '\n';
     }
+    buffer += std::string((data.map[data.map.size()-1].size()) * 2 + 6, '~');
     buffer += "\n\n\n";
     if(data.answer != "")
         buffer += "error: " + data.answer;

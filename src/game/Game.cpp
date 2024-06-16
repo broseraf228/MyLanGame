@@ -2,13 +2,6 @@
 
 #include <iostream>
 
-int_vect::int_vect() {
-	x = 0, y = 0;
-}
-int_vect::int_vect(int ix, int iy) {
-	x = ix, y = iy;
-}
-
 std::vector<std::vector<I_chess_piece*>> Game::default_map
 { 
 	{nullptr, nullptr, nullptr, nullptr, nullptr, nullptr, new chess_piece_pawn(1), nullptr},
@@ -25,8 +18,17 @@ Game* Game::_self = nullptr;
 Game* Game::get()
 {
 	if (_self == nullptr)
-		throw("game called without initialising");
+		Initialization();
 	return _self;
+}
+
+bool Game::inmap(int x, int y)
+{
+	if (x < 0 || x >= game_map.size())
+		return false;
+	if (y < 0 || y >= game_map[x].size())
+		return false;
+	return true;
 }
 
 void Game::fill_map_to_default()
@@ -55,8 +57,9 @@ Game::Game() {
 	drawable_data.map.resize(default_map[0].size(), std::string("?", default_map.size()));
 }
 int Game::Initialization() {
-	if (_self != nullptr)
-		throw("game double initialisation");
+	if (_self != nullptr) {
+		return 0;
+	}
 
 	_self = new Game();
 	return 0;
@@ -65,6 +68,39 @@ int Game::Initialization() {
 int Game::step(const std::string& input) {
 	last_command = input;
 
+	int ans = 0;
+
+	if (input.size() != 4) { ans = 1; goto RR; }
+
+	int ax = input[0] - '0' - 1, ay = input[1] - '0' - 1, bx = input[2] - '0' - 1, by = input[3] - '0' - 1;
+	if (!inmap(ax, ay)) { ans = 2; goto RR; }
+	if (!inmap(bx, by)) { ans = 2; goto RR; }
+
+	if (game_map[ax][ay] == nullptr) { ans = 3; goto RR; }
+
+	if (game_map[bx][by] == nullptr) // can move on free place?
+		if (game_map[ax][ay]->try_move( ax, ay, bx, by ) )
+		{
+			
+			game_map[bx][by] = game_map[ax][ay];
+			game_map[ax][ay] = nullptr;
+			ans = 0; goto RR;
+		}
+		else { ans = 4; goto RR; }
+
+	if (game_map[bx][by] != nullptr) // can eat figure on place?
+		if (game_map[ax][ay]->try_eat(ax, ay, bx, by) )
+		{
+			delete game_map[bx][by];
+			game_map[bx][by] = game_map[ax][ay];
+			game_map[ax][ay] = nullptr;
+			ans = 0; goto RR;
+		}
+		else { ans = 5; goto RR; }
+
+		
+RR:
+	// map drawing
 	int sx = game_map.size(), sy = game_map[0].size();
 	for (int x = 0; x < sx; x++) {
 		for (int y = 0; y < sy; y++)
@@ -77,15 +113,39 @@ int Game::step(const std::string& input) {
 		}
 	}
 
-	if(input == "q"){ 
+	switch (ans)
+	{
+	case 0:
 		drawable_data.answer = "";
-		return 0; 
+		step_counter++;
+		return 0;
+	case 1:
+		drawable_data.answer = "unvailid input, try again like <0104>";
+		return 1;
+	case 2:
+		drawable_data.answer = "unvailid input - position out of map";
+		return 2;
+	case 3:
+		drawable_data.answer = "<" + std::to_string(ax + 1) + " " + std::to_string(ay + 1) + "> is empty";
+		return 3;
+	case 4:
+		drawable_data.answer = "figure cant move on <" + std::to_string(bx + 1) + " " + std::to_string(by + 1) + ">";
+		return 4;
+	case 5:
+		drawable_data.answer = "figure cant eat figure on <" + std::to_string(bx + 1) + " " + std::to_string(by + 1) + ">";
+		return 5;
+	default:
+		drawable_data.answer = "unknown error";
+		return -1;
 	}
-	drawable_data.answer = "gGggRrrRRrrrrrr";
-	return 1;
 }
 
-geme_drawable_data Game::get_drawable_data()
-{
+const geme_drawable_data& Game::get_drawable_data(){
 	return drawable_data;
+}
+const std::vector<std::vector<I_chess_piece*>>& Game::get_map(){
+	return game_map;
+}
+int Game::get_step_count(){
+	return step_counter;
 }
